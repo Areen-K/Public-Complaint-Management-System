@@ -1,0 +1,82 @@
+{% extends 'complaints/base.html' %}
+
+{% block title %}My Complaints{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">My Complaints</h2>
+
+<table class="table table-dark table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Admin Remarks</th>
+            <th>Date</th>
+            <th>Report</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for c in complaints %}
+        <tr>
+            <td>{{ c.category }}</td>
+
+            <td>
+                <span class="badge bg-warning text-dark">
+                    {{ c.priority }}
+                </span>
+            </td>
+
+            <td>
+                {% if c.status == "Resolved" %}
+                    <span class="badge bg-success">Resolved</span>
+                {% elif c.status == "In Progress" %}
+                    <span class="badge bg-info text-dark">In Progress</span>
+                {% else %}
+                    <span class="badge bg-secondary">Pending</span>
+                {% endif %}
+            </td>
+
+            <!-- ✅ ADMIN REMARKS -->
+            <td>
+                {% if c.updates.all %}
+                    <ul class="list-unstyled">
+                        {% for u in c.updates.all %}
+                            <li class="mb-2">
+                                <small class="text-info">
+                                    {{ u.updated_at|date:"d M Y H:i" }}
+                                </small><br>
+                                <strong>{{ u.status }}</strong>: {{ u.remark }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <span class="text-muted">No updates yet</span>
+                {% endif %}
+            </td>
+
+
+            <td>{{ c.created_at|date:"d M Y" }}</td>
+
+            <td>
+                {% if c.status == "Resolved" %}
+                    <a href="{% url 'complaint_pdf' c.id %}" class="btn btn-sm btn-primary">
+                        Download PDF
+                    </a>
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" class="text-center text-muted">
+                No complaints found.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+

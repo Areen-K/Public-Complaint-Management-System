@@ -1,0 +1,136 @@
+{% extends 'complaints/base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- ================= HERO ================= -->
+<div class="text-center" style="margin-top:140px;">
+    <h1 class="fw-bold display-5">
+        Public Grievance Management System
+    </h1>
+    <p class="text-muted">
+        Transparent complaints • Visual insights • Faster resolutions
+    </p>
+</div>
+
+<!-- ================= ACTION BUTTONS ================= -->
+<!-- pushed MORE down for 1080p -->
+<div class="row justify-content-center" style="margin-top:200px;">
+
+    <div class="col-md-3 mb-4">
+        <a href="{% url 'file_complaint' %}" class="text-decoration-none">
+            <div class="glass card-hover p-4 text-center h-100">
+                <i class="bi bi-pencil-square fs-1 text-primary mb-3"></i>
+                <h5 class="text-white">Register Complaint</h5>
+                <p class="text-muted">Submit issues with images</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <a href="{% url 'my_complaints' %}" class="text-decoration-none">
+            <div class="glass card-hover p-4 text-center h-100">
+                <i class="bi bi-clock-history fs-1 text-info mb-3"></i>
+                <h5 class="text-white">Track Status</h5>
+                <p class="text-muted">Monitor complaint progress</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="glass card-hover p-4 text-center h-100"
+             style="cursor:pointer"
+             onclick="showInsights()">
+            <i class="bi bi-bar-chart-line fs-1 text-success mb-3"></i>
+            <h5 class="text-white">Resolution Insight</h5>
+            <p class="text-muted">System-wide analytics</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= INSIGHTS SECTION (HIDDEN) ================= -->
+<div id="insights" style="display:none; margin-top:180px;">
+
+    <!-- STATUS BAR CHART -->
+    <div class="glass p-4 mx-auto mb-5" style="max-width:1000px;">
+        <h4 class="text-center mb-4">Complaint Status Overview</h4>
+        <canvas id="statusChart" height="120"></canvas>
+    </div>
+
+    <!-- CATEGORY PIE CHART -->
+    <div class="glass p-4 mx-auto" style="max-width:600px;">
+        <h4 class="text-center mb-4">Category-wise Distribution</h4>
+        <canvas id="categoryChart" height="200"></canvas>
+    </div>
+
+</div>
+
+<!-- ================= FOOTER ================= -->
+<div class="text-center mt-5 mb-4">
+    <small class="text-muted">
+        Made with 💖 by Swapnil, Areen & Hussey
+    </small>
+</div>
+
+<!-- ================= DATA ================= -->
+{{ pending|json_script:"pending" }}
+{{ resolved|json_script:"resolved" }}
+{{ in_progress|json_script:"progress" }}
+{{ category_labels|json_script:"cat_labels" }}
+{{ category_values|json_script:"cat_values" }}
+
+<!-- ================= SCRIPTS ================= -->
+<script>
+function showInsights() {
+    const section = document.getElementById("insights");
+    section.style.display = "block";
+    section.scrollIntoView({ behavior: "smooth" });
+}
+
+/* -------- Status Bar Chart -------- */
+new Chart(document.getElementById('statusChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Pending', 'Resolved', 'In Progress'],
+        datasets: [{
+            data: [
+                JSON.parse(document.getElementById('pending').textContent),
+                JSON.parse(document.getElementById('resolved').textContent),
+                JSON.parse(document.getElementById('progress').textContent)
+            ],
+            backgroundColor: ['#ffc107', '#28a745', '#0dcaf0'],
+            borderRadius: 12
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#ccc' } },
+            y: { ticks: { color: '#ccc' }, beginAtZero: true }
+        }
+    }
+});
+
+/* -------- Category Pie Chart -------- */
+new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+        labels: JSON.parse(document.getElementById('cat_labels').textContent),
+        datasets: [{
+            data: JSON.parse(document.getElementById('cat_values').textContent),
+            backgroundColor: [
+                '#0dcaf0', '#ffc107', '#28a745',
+                '#dc3545', '#6f42c1'
+            ]
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { labels: { color: '#ccc' } }
+        }
+    }
+});
+</script>
+
+{% endblock %}

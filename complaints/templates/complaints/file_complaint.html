@@ -1,0 +1,47 @@
+{% extends 'complaints/base.html' %}
+{% block title %}New Complaint{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-center align-items-center fade-in" style="min-height:70vh">
+<style>
+input, textarea, select {
+    background-color: #f8f9fa !important;
+    color: #000 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #666 !important;
+}
+</style>
+
+    <div class="glass p-4" style="width:420px; max-width:95%;">
+        <h4 class="mb-3">File a Complaint</h4>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                {{ form.category }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                {{ form.description }}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Attachments</label>
+                {{ form.before_image }}
+            </div>
+
+            <button type="submit" class="btn btn-warning w-100">
+                Submit Complaint
+            </button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
