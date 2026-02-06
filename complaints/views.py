@@ -4,9 +4,14 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.http import HttpResponse
+from django.utils.timezone import now
+from datetime import timedelta
+from django.db.models import Q
 
 from .forms import RegisterForm, ComplaintForm
 from .models import Complaint
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
@@ -76,21 +81,45 @@ def logout_view(request):
     return redirect('login')
 
 # ================= Detect Priotrity =================
-def detect_priority(description):
-    description = description.lower()
+def smart_priority(description):
+    score = 0
+    text = description.lower()
 
-    high_keywords = ['danger', 'accident', 'fire', 'death', 'injured', 'collapse']
-    medium_keywords = ['leak', 'broken', 'blocked', 'overflow', 'damage']
+    keywords = {
+        'accident': 5,
+        'danger': 4,
+        'fire': 5,
+        'injured': 4,
+        'leak': 2,
+        'road': 2,
+        'garbage': 1
+    }
 
-    for word in high_keywords:
-        if word in description:
-            return 'High'
+    for word, weight in keywords.items():
+        if word in text:
+            score += weight
 
-    for word in medium_keywords:
-        if word in description:
-            return 'Medium'
-
+    if score >= 7:
+        return 'High'
+    elif score >= 3:
+        return 'Medium'
     return 'Low'
+
+# ================= OVERDUE CHECK =================
+def check_sla_overdue():
+    overdue = Complaint.objects.filter(
+        status__in=['Pending', 'In Progress'],
+        sla_deadline__lt=now()
+    )
+    overdue.update(is_overdue=True)
+
+# ================= DUPLICATE COMPLAINT =================
+def is_duplicate_complaint(new_complaint):
+    return Complaint.objects.filter(
+        category=new_complaint.category,
+        location=new_complaint.location,
+        description__icontains=new_complaint.description[:20]
+    ).exists()
 
 # ================= FILE COMPLAINT =================
 @login_required
@@ -102,7 +131,15 @@ def file_complaint(request):
             complaint.user = request.user
 
             # AUTO ASSIGN PRIORITY
-            complaint.priority = detect_priority(complaint.description)
+            complaint.priority = smart_priority(complaint.description)
+            # SLA
+            complaint.sla_deadline = now() + timedelta(days=7)
+            # Duplicate Detection
+            if is_duplicate_complaint(complaint):
+                complaint.admin_comment = "⚠ Possible duplicate complaint detected."
+            if complaint.category == "Other" and not complaint.other_category:
+                form.add_error('other_category', 'Please specify the category')
+                return render(request, 'complaints/file_complaint.html', {'form': form})
             complaint.save()
             return redirect('my_complaints')
     else:
@@ -114,6 +151,7 @@ def file_complaint(request):
 # ================= TRACK STATUS =================
 @login_required
 def my_complaints(request):
+    check_sla_overdue()
     complaints = Complaint.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'complaints/my_complaints.html', {'complaints': complaints})
 
@@ -183,28 +221,36 @@ def complaint_pdf(request, complaint_id):
         p.drawString(margin_x, y, f"{label}: {value}")
         y -= line_gap
 
-    # ================= DESCRIPTION =================
+    # ---------------- DESCRIPTION ----------------
     y -= 10
     p.setFont("Helvetica-Bold", 14)
     p.drawString(margin_x, y, "Complaint Description")
 
-    y -= 18
-    p.setFont("Helvetica", 12)
-    text = p.beginText(margin_x, y)
-    for line in complaint.description.split("\n"):
-        text.textLine(line)
-    p.drawText(text)
+    y -= 15
 
-    y = text.getY() - 25
+    max_width = width - (2 * margin_x)
+
+    style = getSampleStyleSheet()["Normal"]
+    style.fontName = "Helvetica"
+    style.fontSize = 11
+    style.leading = 15
+
+    desc_para = Paragraph(complaint.description.replace("\n", "<br/>"), style)
+
+    w, h = desc_para.wrap(max_width, height)
+    desc_para.drawOn(p, margin_x, y - h)
+
+    y = y - h - 30
+
 
     # ================= IMAGES =================
     p.setFont("Helvetica-Bold", 14)
-    p.drawString(margin_x, y, "Before / After Images")
+    p.drawString(margin_x, y, "Attachments:")
 
     y -= 15
     p.setFont("Helvetica", 11)
-    p.drawString(margin_x, y, "Before Image")
-    p.drawString(width / 2 + 10, y, "After Image")
+    p.drawString(margin_x, y, "User Attachment")
+    p.drawString(width / 2 + 10, y, "Admin Attachment")
 
     y -= 10
 
@@ -233,8 +279,10 @@ def complaint_pdf(request, complaint_id):
     if complaint.before_image:
         draw_image(complaint.before_image.path, margin_x, y)
 
-    if complaint.after_image:
-        draw_image(complaint.after_image.path, width / 2 + 10, y)
+    latest_update = complaint.updates.order_by('-updated_at').first()
+
+    if latest_update and latest_update.media:
+        draw_image(latest_update.media.path, width / 2 + 10, y)
 
     y -= img_h + 30
 
@@ -267,7 +315,7 @@ def complaint_pdf(request, complaint_id):
      margin_x,
      y,
      "Resolved On: " + resolved_time.strftime("%d %B %Y, %I:%M %p")
-)
+    )
 
 
     # ================= FOOTER =================
@@ -284,7 +332,7 @@ def complaint_pdf(request, complaint_id):
     p.showPage()
 
     p.setFont("Helvetica-Bold", 18)
-    p.drawCentredString(width / 2, height - 60, "Complaint Status Overview")
+    p.drawCentredString(width / 2, height - 60, "Complaints Status Overview")
 
     from reportlab.graphics.charts.barcharts import VerticalBarChart
     from reportlab.graphics.shapes import Drawing

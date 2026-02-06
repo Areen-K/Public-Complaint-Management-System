@@ -20,7 +20,12 @@
     <tbody>
         {% for c in complaints %}
         <tr>
-            <td>{{ c.category }}</td>
+            <td>{% if c.category == "Other" %}
+                    {{ c.other_category }}
+                {% else %}
+                    {{ c.category }}
+                {% endif %}
+            </td>
 
             <td>
                 <span class="badge bg-warning text-dark">
@@ -41,13 +46,30 @@
             <!-- ✅ ADMIN REMARKS -->
             <td>
                 {% if c.updates.all %}
-                    <ul class="list-unstyled">
+                    <ul class="timeline">
                         {% for u in c.updates.all %}
-                            <li class="mb-2">
-                                <small class="text-info">
-                                    {{ u.updated_at|date:"d M Y H:i" }}
-                                </small><br>
-                                <strong>{{ u.status }}</strong>: {{ u.remark }}
+                            <li class="timeline-item">
+                                <span class="timeline-dot
+                                    {% if u.status == 'Resolved' %}bg-success
+                                    {% elif u.status == 'In Progress' %}bg-warning
+                                    {% else %}bg-secondary{% endif %}">
+                                </span>
+
+                                <div class="timeline-content">
+                                    <small class="text-info">
+                                        {{ u.updated_at|date:"d M Y H:i" }}
+                                    </small><br>
+
+                                    <strong>{{ u.status }}</strong><br>
+                                    {{ u.remark }}
+
+                                    {% if u.media %}
+                                        <br>
+                                        <img src="{{ u.media.url }}"
+                                            class="img-thumbnail mt-2"
+                                            style="max-width: 220px;">
+                                    {% endif %}
+                                </div>
                             </li>
                         {% endfor %}
                     </ul>
@@ -55,6 +77,7 @@
                     <span class="text-muted">No updates yet</span>
                 {% endif %}
             </td>
+
 
 
             <td>{{ c.created_at|date:"d M Y" }}</td>

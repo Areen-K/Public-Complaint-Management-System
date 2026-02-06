@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
-
+from django.utils.timezone import now
+from datetime import timedelta
 
 STATUS_CHOICES = [
         ('Pending', 'Pending'),
@@ -19,6 +20,11 @@ class Complaint(models.Model):
         ('Other', 'Other'),
     ]
 
+    other_category = models.CharField(
+    max_length=100,
+    blank=True,
+    null=True
+    )
 
     PRIORITY_CHOICES = [
         ('Low', 'Low'),
@@ -32,6 +38,14 @@ class Complaint(models.Model):
     default='Low'
     )
 
+    location = models.CharField(
+    max_length=100,
+    blank=True,
+    help_text="Area / Ward / Locality"
+    )
+
+    sla_deadline = models.DateTimeField(blank=True, null=True)
+    is_overdue = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     description = models.TextField()
@@ -51,4 +65,9 @@ class ComplaintUpdate(models.Model):
     complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE,related_name='updates')
     remark = models.TextField()
     status = models.CharField(max_length=20,choices=STATUS_CHOICES)
+    media = models.ImageField(
+        upload_to="complaint_updates/",
+        blank=True,
+        null=True
+    )
     updated_at = models.DateTimeField(auto_now_add=True)

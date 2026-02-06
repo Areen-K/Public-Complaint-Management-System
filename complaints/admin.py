@@ -7,8 +7,8 @@ from django.contrib.auth.models import User
 # 🔹 INLINE UPDATES (appears inside Complaint page)
 class ComplaintUpdateInline(admin.TabularInline):
     model = ComplaintUpdate
-    extra = 1
-    fields = ('status', 'remark')
+    extra = 0
+    fields = ('status', 'remark', 'media', 'updated_at')
     readonly_fields = ('updated_at',)
 
 @admin.register(Complaint)
@@ -19,6 +19,7 @@ class ComplaintAdmin(admin.ModelAdmin):
         'id',
         'user',
         'category',
+        'location',
         'priority',
         'status',
         'created_at',
@@ -45,6 +46,8 @@ class ComplaintAdmin(admin.ModelAdmin):
     readonly_fields = (
         'user',
         'category',
+        'other_category',
+        'location',
         'description',
         'priority',
         'before_image',
@@ -53,12 +56,12 @@ class ComplaintAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('User Info', {
-            'fields': ('user',)
+            'fields': ('user','location')
         }),
         ('Complaint Details (Read Only)', {
-            'fields': ('category', 'description', 'priority')
+            'fields': ('category', 'other_category', 'description', 'priority')
         }),
-        ('Before Image', {
+        ('Attachmetns', {
             'fields': ('before_image',)
         }),
         ('System Info', {
@@ -66,15 +69,15 @@ class ComplaintAdmin(admin.ModelAdmin):
         }),
     )
 
-    # ❌ no adding complaints
+    # no adding complaints ❌
     def has_add_permission(self, request):
         return False
 
-    # ❌ no deleting complaints
+    # no deleting complaints ❌
     def has_delete_permission(self, request, obj=None):
         return False
 
-    # ✅ allow editing (needed for status & image)
+    # allow editing (needed for status & image) ✅
     def has_change_permission(self, request, obj=None):
         return True
 

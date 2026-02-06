@@ -13,10 +13,22 @@ class RegisterForm(forms.ModelForm):
 class ComplaintForm(forms.ModelForm):
     class Meta:
         model = Complaint
-        fields = ['category', 'description', 'before_image']
-
+        fields = ['category', 'other_category', 'location', 'description', 'before_image']
+        labels = {
+            'other_category': 'Specify Category',
+            'location': 'Area / Locality',
+        }
         widgets = {
             'category': forms.Select(attrs={'class': 'form-select'}),
+            'other_category': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter category name',
+                'id': 'otherCategoryInput'
+            }),
+            'location': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter area or ward name'
+            }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 4

@@ -28,6 +28,16 @@ textarea::placeholder {
             </div>
 
             <div class="mb-3">
+                <label id="otherCategoryLabel" style="display:none;">Specify Category</label>
+                {{ form.other_category }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Location</label>
+                {{ form.location }}
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">Description</label>
                 {{ form.description }}
             </div>
@@ -44,4 +54,24 @@ textarea::placeholder {
     </div>
 
 </div>
+<script>
+    const categoryField = document.getElementById("id_category");
+    const otherInput = document.getElementById("otherCategoryInput");
+    const otherLabel = document.getElementById("otherCategoryLabel");
+
+    function toggleOtherCategory() {
+        if (categoryField.value === "Other") {
+            otherInput.style.display = "block";
+            otherLabel.style.display = "block";
+        } else {
+            otherInput.style.display = "none";
+            otherLabel.style.display = "none";
+            otherInput.value = "";
+        }
+    }
+
+    categoryField.addEventListener("change", toggleOtherCategory);
+    toggleOtherCategory(); // run once on page load
+</script>
+
 {% endblock %}
